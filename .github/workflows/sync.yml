@@ -1,0 +1,34 @@
+name: Sync Drive Songs
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 0 */2 * *"
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install google-api-python-client google-auth google-auth-httplib2
+
+      - name: Run sync
+        env:
+          GDRIVE_SERVICE_ACCOUNT_JSON: ${{ secrets.GDRIVE_SERVICE_ACCOUNT_JSON }}
+        run: python scripts/sync_from_drive.py
+
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add songs/ songs.json || true
+          git commit -m "Auto sync songs" || echo "No changes"
+          git push
